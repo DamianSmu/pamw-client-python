@@ -1,1 +1,0 @@
-# pamw-client-python
