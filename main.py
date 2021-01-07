@@ -11,6 +11,9 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.screen import Screen
 from kivymd.uix.textfield import MDTextField
 from functools import partial
+import jwt
+from dotenv import load_dotenv
+import os
 
 URL = "https://pamw-damian-smugorzewski-api.herokuapp.com/"
 #URL = "http://localhost:8080/"
@@ -55,8 +58,11 @@ class LoginScreen(Screen):
             size_hint_x=None,
             width=300)
         button = MDRectangleFlatButton(text='Zaloguj',
-                                       pos_hint={'center_x': 0.5, 'center_y': 0.3},
+                                       pos_hint={'center_x': 0.5, 'center_y': 0.35},
                                        on_release=self.button_clicked)
+        button_auth = MDRectangleFlatButton(text='Zaloguj (Auth0.com)',
+                                            pos_hint={'center_x': 0.5, 'center_y': 0.25},
+                                            on_release=self.button_auth_clicked)
         self.username_text_field.hint_text = "Nazwa użytkownika"
         self.username_text_field.helper_text = "Wpisz nazwę użytkownika (tylko kurier)"
         self.password_text_field = MDTextField(pos_hint={'center_x': 0.5, 'center_y': 0.5},
@@ -73,6 +79,7 @@ class LoginScreen(Screen):
         self.add_widget(self.username_text_field)
         self.add_widget(self.password_text_field)
         self.add_widget(button)
+        self.add_widget(button_auth)
 
     def button_clicked(self, obj):
         username = self.username_text_field.text
@@ -89,7 +96,7 @@ class LoginScreen(Screen):
                 self.remove_widget(self.failure_message)
                 if "COURIER" in response.json()['roles']:
                     global ACCESSTOKEN
-                    ACCESSTOKEN = response.json()['accessToken']
+                    ACCESSTOKEN = "MyBearer " + response.json()['accessToken']
                     MDApp.get_running_app().change_screen("Parcels")
                 else:
                     self.failure_message.text = "Użytkownik nie jest kurierem."
@@ -99,6 +106,38 @@ class LoginScreen(Screen):
             self.failure_message.text = "Brak połączenia z serwerem."
             self.remove_widget(self.failure_message)
             self.add_widget(self.failure_message)
+
+    def button_auth_clicked(self, obj):
+        username = self.username_text_field.text
+        password = self.password_text_field.text
+        SECRET_KEY = os.getenv("SECRET_KEY")
+        load_dotenv()
+        payload = {"client_id": "Lm7u6t7L1ocqf7MBX30GDaBKinqWw55S",
+                   "client_secret": SECRET_KEY,
+                   "audience": "https://pamw-damian-smugorzewski-api.herokuapp.com",
+                   "grant_type": "password",
+                   "username": username,
+                   "password": password,
+                   "scope": "openid app_metadata"}
+
+        response = requests.post("https://dev-5ieroany.eu.auth0.com/oauth/token",
+                                 json=payload,
+                                 headers={"Content-type": "application/json"})
+
+        if not response:
+            self.failure_message.text = "Niepoprawna nazwa użytkownika lub hasło"
+            self.remove_widget(self.failure_message)
+            self.add_widget(self.failure_message)
+        if response:
+            self.remove_widget(self.failure_message)
+            if "kurier" == jwt.decode(response.json()['id_token'], options={"verify_signature": False})['nickname']:
+                global ACCESSTOKEN
+                ACCESSTOKEN = "Bearer " + response.json()['access_token']
+                MDApp.get_running_app().change_screen("Parcels")
+            else:
+                self.failure_message.text = "Użytkownik nie jest kurierem."
+                self.remove_widget(self.failure_message)
+                self.add_widget(self.failure_message)
 
 
 class ParcelScreen(Screen):
@@ -178,7 +217,7 @@ class ParcelScreen(Screen):
 
 def auth_header():
     return {"Content-type": "application/json",
-            "Authorization": "Bearer " + ACCESSTOKEN}
+            "Authorization": ACCESSTOKEN}
 
 
 if __name__ == '__main__':

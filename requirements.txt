@@ -1,4 +1,4 @@
 requests~=2.25.0
 Kivy~=2.0.0rc4
 kivymd~=0.104.1
-
+PyJWT~=2.0.0
