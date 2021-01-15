@@ -15,8 +15,8 @@ import jwt
 from dotenv import load_dotenv
 import os
 
-URL = "https://pamw-damian-smugorzewski-api.herokuapp.com/"
-#URL = "http://localhost:8080/"
+load_dotenv()
+URL = os.getenv("URL")
 
 ACCESSTOKEN = ""
 
@@ -111,7 +111,6 @@ class LoginScreen(Screen):
         username = self.username_text_field.text
         password = self.password_text_field.text
         SECRET_KEY = os.getenv("SECRET_KEY")
-        load_dotenv()
         payload = {"client_id": "Lm7u6t7L1ocqf7MBX30GDaBKinqWw55S",
                    "client_secret": SECRET_KEY,
                    "audience": "https://pamw-damian-smugorzewski-api.herokuapp.com",
